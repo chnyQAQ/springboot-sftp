@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/web/thymeleaf/layout">
+
+	<head>
+		<script th:src="@{/webjars/jquery/3.4.1/dist/jquery.min.js}"></script>
+
+		<script th:src="@{/webjars/jquery.serializeJSON/2.9.0/jquery.serializejson.min.js}"></script>
+
+		<link th:href="@{/webjars/jquery-file-upload/9.18.0/css/jquery.fileupload.css}" rel="stylesheet" />
+		<script th:src="@{/webjars/jquery-file-upload/9.18.0/js/vendor/jquery.ui.widget.js}"></script>
+		<script th:src="@{/webjars/jquery-file-upload/9.18.0/js/jquery.iframe-transport.js}"></script>
+		<script th:src="@{/webjars/jquery-file-upload/9.18.0/js/jquery.fileupload.js}"></script>
+
+		<link th:href="@{/webjars/jquery-ui/1.12.1/jquery-ui.min.css}" rel="stylesheet">
+		<script th:src="@{/webjars/jquery-ui/1.12.1/jquery-ui.min.js}"></script>
+
+		<script th:src="@{/webjars/bootstrap/4.3.1/js/bootstrap.min.js}"></script>
+		<link th:href="@{/webjars/bootstrap/4.3.1/css/bootstrap.min.css}" rel="stylesheet">
+
+		<link th:href="@{/webjars/font-awesome/5.6.3/css/all.min.css}" rel="stylesheet">
+
+		<link th:href="@{/decorator/decorator-default.css}" rel="stylesheet">
+
+	</head>
+	
+	<body>
+		<div th:replace="/decorator/navbar-top :: navbar"></div>
+		<div class="main-container">
+			<div layout:fragment="content"></div>
+		</div>
+	</body>
+
+</html>

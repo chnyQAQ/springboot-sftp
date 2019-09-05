@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/web/thymeleaf/layout" layout:decorate="~{decorator/decorator-default}">
+<head>
+    <meta charset="UTF-8">
+    <title>SFTP</title>
+    <link th:href="@{/view/index.css}" rel="stylesheet">
+    <script th:src="@{/view/index.js}"></script>
+</head>
+<body>
+
+    <div layout:fragment="content">
+        <div class="container">
+            <form id="form" enctype="multipart/form-data">
+                <div class="input-group">
+                    <div class="custom-file">
+                        <input name="file" type="file" class="custom-file-input" id="inputGroupFile" multiple>
+                        <label class="custom-file-label" for="inputGroupFile">请选择文件</label>
+                    </div>
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary" type="button" id="inputUploadFile">上传</button>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <a th:href="@{/download}">查看文件内容</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>
