@@ -1,7 +1,6 @@
 package com.chny.sftp.pool.config.support;
 
 import com.chny.sftp.pool.config.SftpPoolConfig;
-import lombok.Data;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 
 public class SftpPool extends GenericObjectPool<Sftp> {
