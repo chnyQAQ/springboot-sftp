@@ -1,8 +1,6 @@
 package com.chny.sftp.pool.config.support;
 
-import com.jcraft.jsch.ChannelSftp;
 import lombok.Data;
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import static org.apache.commons.pool2.impl.BaseObjectPoolConfig.DEFAULT_BLOCK_WHEN_EXHAUSTED;
