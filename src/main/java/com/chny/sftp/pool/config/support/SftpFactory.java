@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
+import org.springframework.beans.factory.InitializingBean;
 
 import java.util.Properties;
 
@@ -16,7 +17,7 @@ import java.util.Properties;
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 @AllArgsConstructor
-public class SftpFactory extends BasePooledObjectFactory<Sftp> {
+public class SftpFactory extends BasePooledObjectFactory<Sftp> implements InitializingBean {
 
     private static final String CHANNEL_TYPE = "sftp";
     private static Properties sshConfig = new Properties();
@@ -29,10 +30,17 @@ public class SftpFactory extends BasePooledObjectFactory<Sftp> {
         sshConfig.put("StrictHostKeyChecking", "no");
     }
 
+    // 项目启动时，创建5个sftp连接(创建连接很慢！！！！！)
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        for (int i = 0; i < 5; i++) {
+            create();
+        }
+    }
+
     /**
      * 创建一个{@link Sftp}实例
      * 这个方法必须支持并发多线程调用
-     *
      * @return {@link Sftp}实例
      */
     @Override
@@ -53,7 +61,6 @@ public class SftpFactory extends BasePooledObjectFactory<Sftp> {
 
     /**
      * 用{@link PooledObject}的实例包装对象
-     *
      * @param sftp 被包装的对象
      * @return 对象包装器
      */
@@ -64,7 +71,6 @@ public class SftpFactory extends BasePooledObjectFactory<Sftp> {
 
     /**
      * 销毁对象
-     *
      * @param p 对象包装器
      */
     @Override
@@ -81,8 +87,7 @@ public class SftpFactory extends BasePooledObjectFactory<Sftp> {
     }
 
     /**
-     * 检查连接是否可用
-     *
+     * 检查连接是否可用（根据配置的检查周期）
      * @param p 对象包装器
      * @return {@code true} 可用，{@code false} 不可用
      */
@@ -92,6 +97,7 @@ public class SftpFactory extends BasePooledObjectFactory<Sftp> {
             Sftp sftp = p.getObject();
             if (sftp!=null) {
                 try {
+                    // 访问一下文件服务器的根目录
                     sftp.getChannelSftp().pwd();
                     return true;
                 } catch (SftpException e) {
