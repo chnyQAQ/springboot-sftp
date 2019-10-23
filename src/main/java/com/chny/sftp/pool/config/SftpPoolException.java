@@ -1,4 +1,4 @@
-package com.chny.sftp.pool.exception;
+package com.chny.sftp.pool.config;
 
 /**
  * sftp连接池异常
