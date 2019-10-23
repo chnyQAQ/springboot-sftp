@@ -89,6 +89,61 @@ public class SftpTemplate {
      * 下载文件
      *
      * @param filePath 文件路径
+     * @return 文件字节数组
+     */
+    public byte[] download(String filePath) {
+        ChannelSftp sftp = pool.borrowObject();
+        try {
+            sftp.cd(rootDir);
+            int index = filePath.lastIndexOf("/");
+            sftp.cd(filePath.substring(0, index));
+            InputStream in = sftp.get(filePath.substring(index + 1));
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024 * 4];
+            int n;
+            while ((n = in.read(buffer)) > 0) {
+                out.write(buffer, 0, n);
+            }
+            sftp.cd(rootDir);
+            return out.toByteArray();
+        } catch (Exception e) {
+            throw new SftpPoolException("sftp下载文件出错", e);
+        } finally {
+            pool.returnObject(sftp);
+        }
+    }
+
+    /**
+     * 下载文件
+     *
+     * @param dirPath  目录
+     * @param fileName 文件名
+     * @return 文件字节数组
+     */
+    public File downloadFile(String dirPath, String fileName) throws IOException {
+        ChannelSftp sftp = pool.borrowObject();
+        OutputStream outputStream = null;
+        try {
+            sftp.cd(rootDir);
+            File file = new File(fileName);
+            outputStream = new FileOutputStream(file);
+            sftp.get(dirPath + "/" + fileName, outputStream);
+            sftp.cd(rootDir);
+            return file;
+        } catch (SftpException e) {
+            throw new SftpPoolException("sftp下载文件出错", e);
+        } finally {
+            if (outputStream != null) {
+                outputStream.close();
+            }
+            pool.returnObject(sftp);
+        }
+    }
+
+    /**
+     * 下载文件
+     *
+     * @param filePath 文件路径
      * @return 文件
      */
     public File downloadFile(String filePath) throws IOException {
@@ -259,7 +314,7 @@ public class SftpTemplate {
      *
      * @param dir 多级目录
      */
-    public void makeDirs(String dir, ChannelSftp sftp) throws SftpException {
+    private void makeDirs(String dir, ChannelSftp sftp) throws SftpException {
         String[] paths = dir.split("/");
         for (String path : paths) {
             if (!StringUtils.isEmpty(path)) {
@@ -275,7 +330,7 @@ public class SftpTemplate {
     /**
      * 判断目录是否存在
      */
-    public boolean isDirectoryExist(String directoryPath, ChannelSftp sftp) {
+    private boolean isDirectoryExist(String directoryPath, ChannelSftp sftp) {
         boolean directoryExist = false;
         try {
             SftpATTRS sftpATTRS = sftp.lstat(directoryPath);
