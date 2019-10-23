@@ -32,8 +32,14 @@ public class SftpTemplate {
             sftp.cd(rootDir);
             sftp.cd(dir);
             InputStream in = sftp.get(name);
-            return ByteUtil.inputStreamToByteArray(in);
-        } catch (SftpException e) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024*4];
+            int n;
+            while ((n = in.read(buffer))>0) {
+                out.write(buffer, 0, n);
+            }
+            return out.toByteArray();
+        } catch (Exception e) {
             throw new SftpPoolException("sftp下载文件出错", e);
         } finally {
             pool.returnObject(sftp);
