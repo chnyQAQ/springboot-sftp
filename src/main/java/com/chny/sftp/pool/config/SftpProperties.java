@@ -98,32 +98,32 @@ public class SftpProperties {
 
         @Override
         public int getNumTestsPerEvictionRun() {
-            return super.getNumTestsPerEvictionRun();
+            return numTestsPerEvictionRun;
         }
 
         @Override
         public void setNumTestsPerEvictionRun(int numTestsPerEvictionRun) {
-            super.setNumTestsPerEvictionRun(numTestsPerEvictionRun);
+            this.numTestsPerEvictionRun = numTestsPerEvictionRun;
         }
 
         @Override
         public boolean getTestWhileIdle() {
-            return super.getTestWhileIdle();
+            return testWhileIdle;
         }
 
         @Override
         public void setTestWhileIdle(boolean testWhileIdle) {
-            super.setTestWhileIdle(testWhileIdle);
+            this.testWhileIdle = testWhileIdle;
         }
 
         @Override
         public long getTimeBetweenEvictionRunsMillis() {
-            return super.getTimeBetweenEvictionRunsMillis();
+            return timeBetweenEvictionRunsMillis;
         }
 
         @Override
         public void setTimeBetweenEvictionRunsMillis(long timeBetweenEvictionRunsMillis) {
-            super.setTimeBetweenEvictionRunsMillis(timeBetweenEvictionRunsMillis);
+            this.timeBetweenEvictionRunsMillis = timeBetweenEvictionRunsMillis;
         }
 
     }
