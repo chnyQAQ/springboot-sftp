@@ -11,11 +11,9 @@ public class SftpPool {
     /**
      * 创建一个{@link GenericObjectPool}对象池，跟踪使用后未返回给对象池的对象，防止对象泄漏。
      * @param factory         对象工厂
-     * @param config          对象池配置
-     * @param abandonedConfig 废弃对象跟踪配置
      */
-    public SftpPool(SftpFactory factory, SftpPoolProperties config, SftpAbandonedConfig abandonedConfig) {
-        this.pool = new GenericObjectPool<>(factory, config, abandonedConfig);
+    public SftpPool(SftpFactory factory) {
+        this.pool = new GenericObjectPool<>(factory, factory.getProperties().getPool());
     }
 
 

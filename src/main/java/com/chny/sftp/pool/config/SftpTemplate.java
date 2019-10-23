@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.io.*;
+import java.util.*;
 
 @Service
 public class SftpTemplate {
@@ -19,25 +20,63 @@ public class SftpTemplate {
     @Autowired
     private SftpPool pool;
 
+    public FileInfo getFileInfo(String fileName) {
+        try {
+            File file = downloadFile(fileName);
+            return file == null ? null : new FileInfo(file.getName(), (int) file.getTotalSpace(), new Date(file.lastModified()), file.isDirectory());
+        } catch (IOException e) {
+            throw new SftpPoolException("获取文件信息异常", e);
+        }
+    }
+
+    public List<FileInfo> getFileInfos(String directoryPath) {
+        ChannelSftp sftp = pool.borrowObject();
+        try {
+            Vector<ChannelSftp.LsEntry> files = sftp.ls(directoryPath);
+            List<FileInfo> fileList = null;
+            if (null != files) {
+                fileList = new ArrayList<>();
+                Iterator<ChannelSftp.LsEntry> iterator = files.iterator();
+                while (iterator.hasNext()) {
+                    ChannelSftp.LsEntry next = iterator.next();
+                    String fileName = next.getFilename();
+                    if (!".".equals(fileName) && !"..".equals(fileName)) {
+                        Integer size = (int) next.getAttrs().getSize();
+                        long updateTime = next.getAttrs().getMTime();
+                        boolean isDirectory = false;
+                        if (String.valueOf(next.getLongname()).startsWith("d")) {
+                            isDirectory = true;
+                        }
+                        fileList.add(new FileInfo(fileName, size, new Date(updateTime), isDirectory));
+                    }
+                }
+            }
+            return fileList;
+        } catch (SftpException e) {
+            throw new SftpPoolException("获取目录列表 channel.ls " + directoryPath + "失败 " + e);
+        }
+    }
+
     /**
      * 下载文件
      *
-     * @param dir  远程目录
-     * @param name 远程文件名
+     * @param dirPath  目录
+     * @param fileName 文件名
      * @return 文件字节数组
      */
-    public byte[] download(String dir, String name) {
+    public byte[] download(String dirPath, String fileName) {
         ChannelSftp sftp = pool.borrowObject();
         try {
             sftp.cd(rootDir);
-            sftp.cd(dir);
-            InputStream in = sftp.get(name);
+            sftp.cd(dirPath);
+            InputStream in = sftp.get(fileName);
             ByteArrayOutputStream out = new ByteArrayOutputStream();
-            byte[] buffer = new byte[1024*4];
+            byte[] buffer = new byte[1024 * 4];
             int n;
-            while ((n = in.read(buffer))>0) {
+            while ((n = in.read(buffer)) > 0) {
                 out.write(buffer, 0, n);
             }
+            sftp.cd(rootDir);
             return out.toByteArray();
         } catch (Exception e) {
             throw new SftpPoolException("sftp下载文件出错", e);
@@ -46,14 +85,21 @@ public class SftpTemplate {
         }
     }
 
-    public File downloadFile(String targetPath) throws IOException {
+    /**
+     * 下载文件
+     *
+     * @param filePath 文件路径
+     * @return 文件
+     */
+    public File downloadFile(String filePath) throws IOException {
         ChannelSftp sftp = pool.borrowObject();
         OutputStream outputStream = null;
         try {
             sftp.cd(rootDir);
-            File file = new File(targetPath.substring(targetPath.lastIndexOf("/") + 1));
+            File file = new File(filePath.substring(filePath.lastIndexOf("/") + 1));
             outputStream = new FileOutputStream(file);
-            sftp.get(targetPath, outputStream);
+            sftp.get(filePath, outputStream);
+            sftp.cd(rootDir);
             return file;
         } catch (SftpException e) {
             throw new SftpPoolException("sftp下载文件出错", e);
@@ -61,8 +107,6 @@ public class SftpTemplate {
             if (outputStream != null) {
                 outputStream.close();
             }
-
-            sftp.disconnect();
             pool.returnObject(sftp);
         }
     }
@@ -70,18 +114,17 @@ public class SftpTemplate {
     /**
      * 上传文件
      *
-     * @param dir  远程目录
-     * @param name 远程文件名
-     * @param in   输入流
+     * @param inputStream 输入流
+     * @param dirPath     目录
+     * @param fileName    文件名
      */
-    public void upload(String dir, String name, InputStream in) {
+    public void upload(InputStream inputStream, String dirPath, String fileName) {
         ChannelSftp sftp = pool.borrowObject();
         try {
             sftp.cd(rootDir);
-            // 创建目录时，已跳转到对应目录下
-            makeDirs(dir, sftp);
-            // sftp.cd(dir);
-            sftp.put(in, name);
+            makeDirs(dirPath, sftp);
+            sftp.put(inputStream, fileName);
+            sftp.cd(rootDir);
         } catch (SftpException e) {
             throw new SftpPoolException("sftp上传文件出错", e);
         } finally {
@@ -90,21 +133,22 @@ public class SftpTemplate {
     }
 
     /**
-     * @param file       上传文件
-     * @param remotePath 服务器存放路径，支持多级目录
+     * @param file     上传文件
+     * @param filePath 文件路径，支持多级目录
      * @throws
      */
-    public void upload(File file, String remotePath) throws IOException {
+    public void upload(File file, String filePath) throws IOException {
         ChannelSftp sftp = pool.borrowObject();
         FileInputStream fileInputStream = null;
         try {
             if (file.isFile()) {
                 sftp.cd(rootDir);
-                makeDirs(remotePath, sftp);
-                // sftp.cd(remotePath);
+                int index = filePath.lastIndexOf("/");
+                makeDirs(filePath.substring(0, index), sftp);
                 fileInputStream = new FileInputStream(file);
-                sftp.put(fileInputStream, file.getName());
+                sftp.put(fileInputStream, filePath.substring(index + 1));
             }
+            sftp.cd(rootDir);
         } catch (SftpException e) {
             throw new SftpPoolException("上传sftp服务器错误", e);
         } finally {
@@ -118,23 +162,24 @@ public class SftpTemplate {
 
 
     /**
-     * @param file       上传文件
-     * @param remoteName 上传文件名字
-     * @param remotePath 服务器存放路径，支持多级目录
+     * @param file     上传文件
+     * @param fileName 文件名
+     * @param fileDir  文件路径，支持多级目录
      * @throws
      */
-    public boolean upload(File file, String remoteName, String remotePath) throws IOException {
+    public boolean upload(File file, String fileName, String fileDir) throws IOException {
         ChannelSftp sftp = pool.borrowObject();
         FileInputStream fileInputStream = null;
         try {
             if (file.isFile()) {
                 sftp.cd(rootDir);
-                makeDirs(remotePath, sftp);
+                makeDirs(fileDir, sftp);
                 // sftp.cd(remotePath);
                 fileInputStream = new FileInputStream(file);
-                sftp.put(fileInputStream, remoteName);
+                sftp.put(fileInputStream, fileName);
                 return true;
             }
+            sftp.cd(rootDir);
         } catch (SftpException e) {
             throw new SftpPoolException("上传sftp服务器错误", e);
         } finally {
@@ -146,13 +191,19 @@ public class SftpTemplate {
         return false;
     }
 
-    public boolean upload(InputStream inputStream, String remoteName, String remotePath) throws IOException {
+    /**
+     * @param inputStream 输入流
+     * @param filePath    文件路径
+     * @throws
+     */
+    public boolean upload(InputStream inputStream, String filePath) throws IOException {
         ChannelSftp sftp = pool.borrowObject();
         try {
             sftp.cd(rootDir);
-            makeDirs(remotePath, sftp);
+            makeDirs(filePath, sftp);
             // sftp.cd(remotePath);
-            sftp.put(inputStream, remoteName);
+            sftp.put(inputStream, filePath);
+            sftp.cd(rootDir);
             return true;
         } catch (SftpException e) {
             throw new SftpPoolException("上传sftp服务器错误", e);
@@ -168,15 +219,34 @@ public class SftpTemplate {
     /**
      * 删除文件
      *
-     * @param dir  远程目录
-     * @param name 远程文件名
+     * @param fileDir  目录
+     * @param fileName 文件名
      */
-    public void delete(String dir, String name) {
+    public void delete(String fileDir, String fileName) {
         ChannelSftp sftp = pool.borrowObject();
         try {
             sftp.cd(rootDir);
-            sftp.cd(dir);
-            sftp.rm(name);
+            sftp.cd(fileDir);
+            sftp.rm(fileName);
+            sftp.cd(rootDir);
+        } catch (SftpException e) {
+            throw new SftpPoolException("sftp删除文件出错", e);
+        } finally {
+            pool.returnObject(sftp);
+        }
+    }
+
+    /**
+     * 删除文件
+     *
+     * @param filePath 文件路径
+     */
+    public void delete(String filePath) {
+        ChannelSftp sftp = pool.borrowObject();
+        try {
+            sftp.cd(rootDir);
+            sftp.rm(filePath);
+            sftp.cd(rootDir);
         } catch (SftpException e) {
             throw new SftpPoolException("sftp删除文件出错", e);
         } finally {

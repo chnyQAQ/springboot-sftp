@@ -29,7 +29,7 @@ public class FileController {
         String relativeDir = year + "-" + month + "/";
         try {
             // 上传到ftp
-            sftp.upload(relativeDir, name, file.getInputStream());
+            sftp.upload(file.getInputStream(), relativeDir, name);
         } catch (Exception e) {
             throw new SftpPoolException("保存文件时出错", e);
         }

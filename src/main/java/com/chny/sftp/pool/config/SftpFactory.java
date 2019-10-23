@@ -20,7 +20,6 @@ import java.util.Properties;
 @AllArgsConstructor
 public class SftpFactory extends BasePooledObjectFactory<ChannelSftp>{
 
-
     @Autowired
     private SftpProperties properties;
 
@@ -41,7 +40,6 @@ public class SftpFactory extends BasePooledObjectFactory<ChannelSftp>{
             sshSession.connect();
             ChannelSftp channel = (ChannelSftp) sshSession.openChannel("sftp");
             channel.connect();
-            System.out.println("创建成功！" + System.currentTimeMillis());
             return channel;
         } catch (JSchException e) {
             throw new SftpPoolException("连接sfpt失败", e);
